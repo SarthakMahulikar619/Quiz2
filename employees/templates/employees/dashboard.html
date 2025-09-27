@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        .api-links {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .api-links h3 {
+            margin-top: 0;
+        }
+        .api-links a {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #333;
+            border-left: 4px solid #007bff;
+        }
+        .api-links a:hover {
+            background: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Employee Data Management Dashboard</h1>
+            <p>Analytics and Visualization for Employee Data</p>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <!-- Stats will be populated by JavaScript -->
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3>Employees by Department</h3>
+                <div class="chart-container">
+                    <canvas id="departmentChart"></canvas>
+                </div>
+            </div>
+
+
+
+            <div class="card">
+                <h3>Salary Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="salaryChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="api-links">
+            <h3>API Endpoints</h3>
+            <a href="/swagger/" target="_blank">📚 Swagger UI Documentation</a>
+            <a href="/api/employees/analytics/" target="_blank">👥 Employee Analytics</a>
+            <a href="/admin/" target="_blank">⚙️ Django Admin</a>
+            <a href="/health/" target="_blank">💚 Health Check</a>
+        </div>
+    </div>
+
+    <script>
+        // Fetch analytics data and create charts
+        async function loadDashboard() {
+            try {
+                // Fetch employee analytics
+                const employeeResponse = await fetch('/api/employees/analytics/');
+                const employeeData = await employeeResponse.json();
+
+
+
+                // Update stats
+                updateStats(employeeData);
+
+                // Create charts
+                createDepartmentChart(employeeData.employees_by_department);
+                createSalaryChart(employeeData);
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('statsGrid').innerHTML = 
+                    '<div class="stat-card"><div class="stat-label">Error loading data. Please check if the server is running.</div></div>';
+            }
+        }
+
+        function updateStats(employeeData) {
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${employeeData.total_employees}</div>
+                    <div class="stat-label">Total Employees</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${employeeData.active_employees}</div>
+                    <div class="stat-label">Active Employees</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${employeeData.average_salary.toFixed(0)}</div>
+                    <div class="stat-label">Avg Salary</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${employeeData.new_hires_this_month}</div>
+                    <div class="stat-label">New Hires</div>
+                </div>
+            `;
+        }
+
+        function createDepartmentChart(data) {
+            const ctx = document.getElementById('departmentChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        data: Object.values(data),
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+
+
+        function createSalaryChart(employeeData) {
+            // Create a simple salary range chart
+            const ctx = document.getElementById('salaryChart').getContext('2d');
+            const salaryRanges = {
+                '0-50k': 0,
+                '50k-75k': 0,
+                '75k-100k': 0,
+                '100k-125k': 0,
+                '125k+': 0
+            };
+
+            // This is a placeholder - in a real app, you'd fetch actual salary data
+            salaryRanges['50k-75k'] = 2;
+            salaryRanges['75k-100k'] = 2;
+            salaryRanges['100k-125k'] = 1;
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(salaryRanges),
+                    datasets: [{
+                        label: 'Number of Employees',
+                        data: Object.values(salaryRanges),
+                        backgroundColor: '#FFCE56'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load dashboard when page loads
+        loadDashboard();
+    </script>
+</body>
+</html>

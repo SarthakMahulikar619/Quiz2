@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.db import models
 from .models import (
-    Department, Position, Employee
+    Department, Position, Employee, Attendance
 )
 
 
@@ -57,6 +57,16 @@ class EmployeeListSerializer(serializers.ModelSerializer):
         ]
 
 
+class AttendanceSerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(source='employee.full_name', read_only=True)
+    employee_id = serializers.CharField(source='employee.employee_id', read_only=True)
+    
+    class Meta:
+        model = Attendance
+        fields = '__all__'
+        read_only_fields = ['created_at']
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -71,3 +81,11 @@ class EmployeeAnalyticsSerializer(serializers.Serializer):
     employees_by_position = serializers.DictField()
     average_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
     new_hires_this_month = serializers.IntegerField()
+
+
+class AttendanceAnalyticsSerializer(serializers.Serializer):
+    total_attendance_records = serializers.IntegerField()
+    attendance_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
+    average_hours_worked = serializers.DecimalField(max_digits=4, decimal_places=2)
+    attendance_by_status = serializers.DictField()
+    top_attending_employees = serializers.ListField()

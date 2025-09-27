@@ -7,6 +7,7 @@ A comprehensive Django REST Framework application for employee data management, 
 ### Core Functionality
 - **Employee Management**: Complete employee lifecycle management
 - **Department & Position Management**: Organizational structure management
+- **Attendance Tracking**: Employee attendance and hours tracking
 
 ### API Features
 - **RESTful APIs**: Full CRUD operations for all entities
@@ -93,6 +94,10 @@ A comprehensive Django REST Framework application for employee data management, 
 - `POST /api/positions/` - Create position
 - `GET /api/positions/{id}/employees/` - Position employees
 
+### Attendance
+- `GET /api/attendance/` - List attendance records
+- `POST /api/attendance/` - Create attendance record
+- `GET /api/attendance/analytics/` - Attendance analytics
 
 ### System
 - `GET /health/` - Health check endpoint
@@ -115,16 +120,24 @@ A comprehensive Django REST Framework application for employee data management, 
 - Department association
 - Base salary information
 
+### Attendance
+- Employee attendance tracking
+- Check-in/check-out times
+- Hours worked calculation
+- Status tracking (present, absent, sick leave, etc.)
+
 
 ## Analytics & Visualization
 
 ### Dashboard Features
 - Employee statistics overview
 - Department distribution charts
+- Attendance status visualization
 - Salary distribution visualization
 
 ### Analytics Endpoints
 - Employee analytics: Total employees, department distribution, salary averages
+- Attendance analytics: Attendance rates, hours worked, status distribution
 
 ## Configuration
 

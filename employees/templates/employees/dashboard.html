@@ -110,6 +110,13 @@
 
 
             <div class="card">
+                <h3>Attendance Status</h3>
+                <div class="chart-container">
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
                 <h3>Salary Distribution</h3>
                 <div class="chart-container">
                     <canvas id="salaryChart"></canvas>
@@ -121,6 +128,7 @@
             <h3>API Endpoints</h3>
             <a href="/swagger/" target="_blank">📚 Swagger UI Documentation</a>
             <a href="/api/employees/analytics/" target="_blank">👥 Employee Analytics</a>
+            <a href="/api/attendance/analytics/" target="_blank">📊 Attendance Analytics</a>
             <a href="/admin/" target="_blank">⚙️ Django Admin</a>
             <a href="/health/" target="_blank">💚 Health Check</a>
         </div>
@@ -134,13 +142,18 @@
                 const employeeResponse = await fetch('/api/employees/analytics/');
                 const employeeData = await employeeResponse.json();
 
+                // Fetch attendance analytics
+                const attendanceResponse = await fetch('/api/attendance/analytics/');
+                const attendanceData = await attendanceResponse.json();
+
 
 
                 // Update stats
-                updateStats(employeeData);
+                updateStats(employeeData, attendanceData);
 
                 // Create charts
                 createDepartmentChart(employeeData.employees_by_department);
+                createAttendanceChart(attendanceData.attendance_by_status);
                 createSalaryChart(employeeData);
 
             } catch (error) {
@@ -150,7 +163,7 @@
             }
         }
 
-        function updateStats(employeeData) {
+        function updateStats(employeeData, attendanceData) {
             const statsGrid = document.getElementById('statsGrid');
             statsGrid.innerHTML = `
                 <div class="stat-card">
@@ -162,12 +175,12 @@
                     <div class="stat-label">Active Employees</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${employeeData.average_salary.toFixed(0)}</div>
-                    <div class="stat-label">Avg Salary</div>
+                    <div class="stat-number">${attendanceData.attendance_rate.toFixed(1)}%</div>
+                    <div class="stat-label">Attendance Rate</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${employeeData.new_hires_this_month}</div>
-                    <div class="stat-label">New Hires</div>
+                    <div class="stat-number">${attendanceData.average_hours_worked.toFixed(1)}</div>
+                    <div class="stat-label">Avg Hours/Day</div>
                 </div>
             `;
         }
@@ -197,7 +210,30 @@
             });
         }
 
-
+        function createAttendanceChart(data) {
+            const ctx = document.getElementById('attendanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        data: Object.values(data),
+                        backgroundColor: [
+                            '#4BC0C0', '#FF6384', '#FFCE56', '#36A2EB', '#9966FF'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
 
         function createSalaryChart(employeeData) {
             // Create a simple salary range chart

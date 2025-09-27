@@ -9,11 +9,12 @@ from datetime import datetime, timedelta
 from django.db import models
 
 from .models import (
-    Department, Position, Employee
+    Department, Position, Employee, Attendance
 )
 from .serializers import (
     DepartmentSerializer, PositionSerializer, EmployeeSerializer, 
-    EmployeeListSerializer, EmployeeAnalyticsSerializer
+    EmployeeListSerializer, AttendanceSerializer, EmployeeAnalyticsSerializer,
+    AttendanceAnalyticsSerializer
 )
 
 
@@ -68,6 +69,14 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             return EmployeeListSerializer
         return EmployeeSerializer
 
+    @action(detail=True, methods=['get'])
+    def attendance(self, request, pk=None):
+        """Get attendance records for an employee"""
+        employee = self.get_object()
+        attendance = employee.attendances.all()
+        serializer = AttendanceSerializer(attendance, many=True)
+        return Response(serializer.data)
+
 
 
     @action(detail=False, methods=['get'])
@@ -113,6 +122,64 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         }
         
         serializer = EmployeeAnalyticsSerializer(analytics_data)
+        return Response(serializer.data)
+
+
+class AttendanceViewSet(viewsets.ModelViewSet):
+    queryset = Attendance.objects.select_related('employee')
+    serializer_class = AttendanceSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['employee', 'status', 'date']
+    search_fields = ['employee__first_name', 'employee__last_name', 'employee__employee_id']
+    ordering_fields = ['date', 'hours_worked']
+    ordering = ['-date']
+
+    @action(detail=False, methods=['get'])
+    def analytics(self, request):
+        """Get attendance analytics summary"""
+        total_records = Attendance.objects.count()
+        
+        # Attendance rate (present vs total)
+        present_count = Attendance.objects.filter(status='present').count()
+        attendance_rate = (present_count / total_records * 100) if total_records > 0 else 0
+        
+        # Average hours worked
+        avg_hours = Attendance.objects.aggregate(
+            avg_hours=Avg('hours_worked')
+        )['avg_hours'] or 0
+        
+        # Attendance by status
+        attendance_by_status = Attendance.objects.values('status').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        # Top attending employees
+        top_attending = Attendance.objects.values(
+            'employee__first_name', 'employee__last_name', 'employee__employee_id'
+        ).annotate(
+            total_hours=Sum('hours_worked'),
+            attendance_count=Count('id')
+        ).order_by('-total_hours')[:10]
+        
+        analytics_data = {
+            'total_attendance_records': total_records,
+            'attendance_rate': attendance_rate,
+            'average_hours_worked': avg_hours,
+            'attendance_by_status': {item['status']: item['count'] 
+                                   for item in attendance_by_status},
+            'top_attending_employees': [
+                {
+                    'name': f"{item['employee__first_name']} {item['employee__last_name']}",
+                    'employee_id': item['employee__employee_id'],
+                    'total_hours': item['total_hours'],
+                    'attendance_count': item['attendance_count']
+                }
+                for item in top_attending
+            ]
+        }
+        
+        serializer = AttendanceAnalyticsSerializer(analytics_data)
         return Response(serializer.data)
 
 

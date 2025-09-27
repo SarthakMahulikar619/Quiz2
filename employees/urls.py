@@ -3,13 +3,14 @@ from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 from .views import (
     DepartmentViewSet, PositionViewSet, EmployeeViewSet,
-    health_check, dashboard
+    AttendanceViewSet, health_check, dashboard
 )
 
 router = DefaultRouter()
 router.register(r'departments', DepartmentViewSet)
 router.register(r'positions', PositionViewSet)
 router.register(r'employees', EmployeeViewSet)
+router.register(r'attendance', AttendanceViewSet)
 
 urlpatterns = [
     path('', dashboard, name='dashboard'),

@@ -6,7 +6,7 @@ import random
 from decimal import Decimal
 
 from employees.models import (
-    Department, Position, Employee
+    Department, Position, Employee, Attendance
 )
 
 
@@ -46,6 +46,9 @@ class Command(BaseCommand):
         # Generate employees
         employees = self.create_employees(positions, num_employees)
 
+        # Generate attendance records
+        self.create_attendance_records(employees)
+
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -55,6 +58,7 @@ class Command(BaseCommand):
 
     def clear_data(self):
         """Clear all existing data"""
+        Attendance.objects.all().delete()
         Employee.objects.all().delete()
         Position.objects.all().delete()
         Department.objects.all().delete()
@@ -166,7 +170,10 @@ class Command(BaseCommand):
             position = random.choice(positions)
             
             # Generate unique employee ID
-            employee_id = f"EMP{1000 + i:04d}"
+            while True:
+                employee_id = f"EMP{1000 + i + random.randint(0, 9999):04d}"
+                if not Employee.objects.filter(employee_id=employee_id).exists():
+                    break
             
             # Generate hire date (within last 2 years)
             hire_date = fake.date_between(start_date='-2y', end_date='today')
@@ -174,7 +181,7 @@ class Command(BaseCommand):
             # Calculate salary based on position with some variation
             base_salary = position.base_salary
             salary_variation = random.uniform(0.8, 1.2)
-            salary = Decimal(str(round(base_salary * salary_variation, 2)))
+            salary = Decimal(str(round(float(base_salary) * salary_variation, 2)))
 
             employee_data = {
                 'employee_id': employee_id,
@@ -204,4 +211,42 @@ class Command(BaseCommand):
             self.stdout.write(f'Created employee: {employee.full_name} ({employee.employee_id})')
 
         return employees
+
+    def create_attendance_records(self, employees):
+        """Create attendance records for employees"""
+        from faker import Faker
+        fake = Faker()
+
+        for employee in employees:
+            # Generate attendance for last 30 days
+            for i in range(30):
+                attendance_date = timezone.now().date() - timedelta(days=i)
+                
+                # Skip weekends
+                if attendance_date.weekday() >= 5:
+                    continue
+                
+                # 85% attendance rate
+                if random.random() < 0.85:
+                    status = 'present'
+                    check_in = time(9, random.randint(0, 30))  # 9:00-9:30 AM
+                    check_out = time(17, random.randint(0, 30))  # 5:00-5:30 PM
+                    hours_worked = 8.0
+                else:
+                    status = random.choice(['absent', 'sick_leave', 'vacation'])
+                    check_in = None
+                    check_out = None
+                    hours_worked = 0
+
+                Attendance.objects.create(
+                    employee=employee,
+                    date=attendance_date,
+                    check_in_time=check_in,
+                    check_out_time=check_out,
+                    hours_worked=hours_worked,
+                    status=status,
+                    notes=fake.sentence() if status != 'present' else ''
+                )
+
+        self.stdout.write('Created attendance records')
 
